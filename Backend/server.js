@@ -7,6 +7,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import cookieParser from "cookie-parser";
 import fileUpload from 'express-fileupload';
 import userRoute from "./routes/user.route.js";
+import adminRoute from "./routes/admin.route.js";
 
 dotenv.config();
 
@@ -32,6 +33,8 @@ connectDatabase();
 // Course routes
 app.use("/api/v1/Course", CourseRoute);
 app.use("/api/v1/user",userRoute);
+app.use("/api/v1/admin",adminRoute);
+
 
 
 //cloudeinary configuration code
