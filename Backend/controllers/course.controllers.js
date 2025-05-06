@@ -1,7 +1,12 @@
-import { Course } from '../models/course.model.js';
+  import { Course } from '../models/course.model.js';
 import { v2 as cloudinary } from 'cloudinary';
+import { Purchase } from '../models/purchase.model.js'; // Import the Purchase model
+
 
 export const createCourse = async (req, res) => {
+
+const adminId = req.adminId; // Assuming you have the admin ID from the middleware
+
   const { title, description, price } = req.body;
   try {
     if (!title || !description || !price) {
@@ -33,6 +38,7 @@ export const createCourse = async (req, res) => {
         public_id: cloud_response.public_id,
         url: cloud_response.secure_url,
       },
+      creatorId: adminId
     };
 
     const course = await Course.create(courseData);
@@ -49,20 +55,26 @@ export const createCourse = async (req, res) => {
   }
 };
 export const updateCourse= async (req, res) => {
+    const adminId = req.adminId; // Assuming you have the admin ID from the middleware
     const {courseId} = req.params;
+    
     const { title, description, price,image } = req.body;
     try{
-        const course = await Course.updateOne({_id: courseId}, {
+      const courseSerach = await course.findById(courseId);
+      if(!courseSearch){
+        return res.status(404).json({message:'Course not found'});
+      }
+        const course = await Course.updateOne({_id: courseId,creatorId:adminId}, {
             title,
             description,
             price,
             image: {
-                public_id: image.public_id,
-                url: image.url,
+                public_id: image?.public_id,
+                url: image?.url,
             },
         }); 
                 res.status(201).json({
-            message: 'Course updated successfully',})
+            message: 'Course updated successfully',course})
     }
     catch(error){
         console.log(error);
@@ -72,9 +84,11 @@ export const updateCourse= async (req, res) => {
         });
     }
 
+  };
 
-}
+
 export const deleteCourse = async (req, res) => {
+  const adminId = req.adminId; // Assuming you have the admin ID from the middleware
   const { courseId } = req.params;
   try {
     const course = await Course.findById(courseId);
@@ -85,7 +99,7 @@ export const deleteCourse = async (req, res) => {
     // Delete image from Cloudinary
     await cloudinary.uploader.destroy(course.image.public_id);
 
-    await Course.deleteOne({ _id: courseId });
+    await Course.deleteOne({ _id: courseId,creatorId:adminId });
     res.json({
       message: 'Course deleted successfully',
     });
@@ -126,3 +140,29 @@ export const courseDetails = async (req, res) => {
     });
   }
 }
+export const  buyCourses=async(req,res)=>
+  {
+    const{userId}=req;
+    const {courseId}=req.params;
+    try{
+      const course=await Course.findById(courseId);
+      if(!course){
+        return res.status(404).json({message:'Course not found'});
+
+      }
+
+      const existingPurchase=await Purchase.findOne({userId,courseId});
+      if(existingPurchase){
+        return res.status(400).json({message:'Course already purchased'});
+      }
+      const newpurchase=new purchase({userId,courseId})
+      await newpurchase.save();
+      res.status(201).json({message:'Course purchased successfully',purchase:newpurchase});
+     } catch(error){
+        res.status(500).json({error:"Error in course buying"});
+        console.log("Error in course buying",error);    
+      }
+    };
+
+
+
